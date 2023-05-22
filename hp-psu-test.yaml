@@ -1,0 +1,256 @@
+substitutions:
+  update_time: 30s
+  devicename: hp-psu-test
+  ip_address: 1.1.1.1
+  gateway: 1.1.1.1
+  subnet: 255.255.255.0
+  dns: 8.8.8.8
+  
+# GPIO4: SDA
+# GPIO5: SCL
+# GPIO12: PS turnon (Low to turn on)
+# GPIO13: PS Inturrupt ( Low on fault )
+# GPIO14: Fan RPM/Tach (pulled high externally)
+# GPIO16: Fan PWM Out
+# ADC0: iShare (Analog current shunt)
+#        1200w (100a) =  3.216v
+#        900w (75A) = 2.412v
+#        750w (62.5a) = 2.010v
+#        450w (37.5a) = 1.206v
+
+
+wifi: 
+  ssid: "a cool ssid"
+  password: "a password"
+  domain: .a.tld
+  reboot_timeout: 1min
+  manual_ip:
+    static_ip: ${ip_address}
+    gateway: ${gateway}
+    subnet: ${subnet}
+    dns1: ${dns}
+    
+
+esphome:
+  name: ${devicename}
+  platform: esp8266
+  board: esp12e
+  includes:
+    - CSPS/main.hpp
+    - CSPS/KCORES_CSPS.h
+    - CSPS/KCORES_CSPS.cpp
+    
+  libraries:
+    - "Wire"
+    
+# Enable logging
+logger:
+  level: debug
+
+
+# Enable Home Assistant API
+api:
+  encryption:
+   key: !secret api_key
+ota:
+   safe_mode: true
+   password: !secret ota_key
+
+i2c:
+   sda: 4
+   scl: 5
+   scan: true
+
+switch:
+  #GPIO to trigger PSU Turn-on
+  - platform: gpio
+    pin: 
+      number: 12
+    inverted: true
+    id: PSU_power
+    name: "${devicename} PSU Power"
+
+fan:
+  #fan speed control via IRLML6344TRPBF Mosfet 
+  - platform: speed
+    name: "${devicename} Box Fan"
+    output: fan_gpio16
+    id: fan1
+    speed_count: 10
+
+number:
+  - platform: template
+    id: csps_rpm
+    device_class: speed
+    unit_of_measurement: 'RPM'
+    name: "${devicename} PSU Fan RPM"
+    optimistic: true
+    min_value: 0
+    max_value: 20000
+    step: 500
+    on_value:
+      then:
+        - lambda: |-
+            auto power = new CSPSPower();
+            App.register_component(power);
+            power->set_fan_rpm(id(csps_rpm).state);
+
+
+output:
+  #Fan Speed control. Tune Min_Power to the lowest your fan will spin at, and max_power should  be just above the point where the fan is fully on (should be 1)
+  - platform: esp8266_pwm
+    pin: 16
+    frequency: 20000 Hz
+    id: fan_gpio16
+    min_power: .4
+    max_power: 1
+    zero_means_zero: true
+
+
+#--------------- Returns power supply model number. If your's isn't listed, Add a new substitute statement. Just a personal thing to help ID power supplies.
+text_sensor:
+  - platform: custom
+    lambda: |-
+      auto power = new CSPSPower();
+      App.register_component(power);
+      return{power->sparepart};
+    text_sensors:
+    - name: "${devicename} Power Supply Model"
+      filters:
+      - substitute:
+        - "511777-001 -> HP DPS-460EB 460w/38.3a"
+        - "660184-01 -> HP HSTNS-PR28 460w/38.3a"
+        - "511777-001 -> HP DPS-750AB-3 750w/62.2a"
+        - "643932-001 -> HP HSTNS-PL29 750w/62.2a"
+        - "660185-001 -> HP DPS-1200SB 1200w/100a(240v) 900w/75a(120v)"
+
+
+binary_sensor:
+  # PS Inturrupt, not used right mow. Goes low when there is a PSU error.
+  - platform: gpio
+    pin: 
+      number: 13
+      inverted: true
+      mode:
+        input: true
+        pullup: False
+    name: "${devicename} PSInturrupt"
+    
+  #re-use FLASH/PROG button to act as local PSU control once booted
+  - platform: gpio
+    pin: 
+      number: 0
+      inverted: true
+    name: "${devicename} Local PSU Control"
+    icon: mdi:pushbutton
+    on_press:
+      then:
+      - switch.toggle: PSU_power
+
+sensor: 
+  - platform: wifi_signal
+    name: "${devicename} wifi signal"
+    update_interval: $update_time
+
+  #analog current (Used for backup/validation from PSMbus)
+  - platform: ct_clamp
+    sensor: adc_sensor
+    name: "${devicename} Analog DC Current"
+    update_interval: $update_time
+    device_class: power
+    filters:
+      - calibrate_linear:
+          # Measured value of 0 maps to 0A
+          - 0 -> 0
+          - 0.3728 -> 37.5
+          - 0.6215 -> 62.5
+          - 0.7458 -> 75
+          - 0.9945 -> 100
+
+
+  # ADC input for current
+  - platform: adc
+    pin: A0
+    id: adc_sensor
+
+  
+  # Box Fan RPM
+  - platform: pulse_counter
+    pin: 14
+    name: "${devicename} Box Fan RPM"
+    id: fan_pulse
+    unit_of_measurement: 'RPM'
+    filters:
+      - multiply: 3
+      - sliding_window_moving_average:
+          window_size: 20
+          send_every: 5
+    count_mode:
+      rising_edge: INCREMENT
+      falling_edge: DISABLE
+    update_interval: $update_time
+
+
+  #BME280
+  - platform: bme280
+    temperature:
+      name: "${devicename} Box Temperature"
+    pressure:
+      name: "${devicename} Box Pressure"
+    humidity:
+      name: "${devicename} Box Relative Humidity"
+    address: 0x76
+    update_interval: $update_time
+
+
+
+  #--------------- Expermental code for PSMbus
+
+  - platform: custom
+    lambda: |-
+      auto power = new CSPSPower();
+      App.register_component(power);
+      return {power->fan_speed, power->temp1, power->temp2, power->power_out, power->power_in, power->current_out, power->current_in, power->voltage_out, power->voltage_in};
+
+    sensors:
+    - name: "${devicename} PSU Fan Speed"
+      device_class: speed
+
+      accuracy_decimals: 0
+      unit_of_measurement: RPM
+    - name: "${devicename} PSU Temp 1"
+      device_class: temperature
+      accuracy_decimals: 1
+      filters:
+        - lambda: return x * (9.0/5.0) + 32.0; #remove for Celsius
+      unit_of_measurement: "°F"
+    - name: "${devicename} PSU Temp 2"
+      device_class: temperature
+      accuracy_decimals: 1
+      filters:
+        - lambda: return x * (9.0/5.0) + 32.0; #remove for Celsius
+      unit_of_measurement: "°F"
+    - name: "${devicename} PSU DC Power"
+      device_class: power
+      accuracy_decimals: 0
+      unit_of_measurement: W
+    - name: "${devicename} PSU AC Power"
+      device_class: power
+      accuracy_decimals: 0
+      unit_of_measurement: W
+    - name: "${devicename} PSU DC Current"
+      device_class: current
+      accuracy_decimals: 1
+      unit_of_measurement: A
+    - name: "${devicename} PSU AC Current"
+      device_class: current
+      accuracy_decimals: 1
+      unit_of_measurement: A
+    - name: "${devicename} PSU DC Voltage"
+      device_class: voltage
+      accuracy_decimals: 1
+      unit_of_measurement: V
+    - name: "${devicename} PSU AC Voltage"
+      device_class: voltage
+      accuracy_decimals: 1
+      unit_of_measurement: V
