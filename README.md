@@ -19,7 +19,7 @@ These are commonly used in the holiday lighting community (as I am on my show), 
 - Wifi signal strength
 
 
-##Some notes about this design
+## Some notes about this design
 
 - There is no real feedback about PSU state outside of the PSU LED, I felt it wasn't needed on the board as you can usally see the PSU LED.
 - There is no feedback on Case/Box Fan status, but you usally can see the fan operating or not; most users don't use this unless you're in the south or California.
