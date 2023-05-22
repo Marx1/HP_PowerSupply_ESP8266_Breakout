@@ -6,11 +6,11 @@ These are commonly used in the holiday lighting community (as I am on my show), 
 ## Features include
 
 - PSMBus control/management of the power supply
-  -PS Temps (There are two sensors) monitoring (in Ferinheight)
-  -AC Voltage, current (Amps) and power (watts) monitoring
-  -DC Voltage, current (Amps) and power (watts) monitoring
-  -PSU Fan speed monitoring and control.
-  -PSU model detection (common PSU names pre-mapped in code)
+  - PS Temps (There are two sensors) monitoring (in Ferinheight)
+  - AC Voltage, current (Amps) and power (watts) monitoring
+  - DC Voltage, current (Amps) and power (watts) monitoring
+  - PSU Fan speed monitoring and control.
+  - PSU model detection (common PSU names pre-mapped in code)
 - Analog mesurement of power (As a backup in the event the PSMBus is not working/incompatable)
 - PSU Failure/Alarm support (There is no real use for this outside of a PSU fan failure)
 - Local and remote power supply power control
@@ -23,9 +23,14 @@ These are commonly used in the holiday lighting community (as I am on my show), 
 
 - There is no real feedback about PSU state outside of the PSU LED, I felt it wasn't needed on the board as you can usally see the PSU LED.
 - There is no feedback on Case/Box Fan status, but you usally can see the fan operating or not; most users don't use this unless you're in the south or California.
+- There is a 900W (75a) power limit
+- 30a max per output connector
+- 8awg max size per output connector
+- Wire furrels are recommend
+- Torque output connector to 5 in-lbs.
 
-
-The board is designed around ** 900w continous draw (75a) ** with a 1oz FR4 PCB, it *should* be ok with higher draws for VERY Short peroids (IE accidentally setting lights to all white). The 64 pin PSU Connector from TE is rated at 3 amps a pin, and there are 26 pins per +12v and Gnd, resulting in 78a, The traces are designed around a 25c temp rise, with the PSU fan sucking air over it all the time, this should be fine.
+### Technical bits and bobs around the notes
+The board ihas a power limit of **900w continous draw (75a)** it *should* be ok with higher draws for VERY Short peroids (IE accidentally setting lights to all white). This is because the 64 pin PSU Connector from TE is rated at 3 amps a pin, and there are 26 pins per +12v and Gnd, resulting in 78a, The traces are designed around a 25c temp rise, with the PSU fan sucking air over it all the time, this should be fine. I'm sourcing real TE high-power connectors, HP may have some priporitory conenctors that can handle more power, but a 1200w power supply requires 240v to output it's full power - and most people don't do that.
 
 Each of the output connectors are rated at 32a, but 8awg is the max wire size, so its really 30a. You should use wire Furrels and torque the connectors to 5 in-lb at high currents. Over torqueing can break them.
 
