@@ -25,14 +25,14 @@ These are commonly used in the holiday lighting community (as I am on my show), 
 - There is no feedback on Case/Box Fan status, but you usally can see the fan operating or not; most users don't use this unless you're in the south or California.
 - There is a 900W (75a) power limit.  This is designed around a 1200w ps running on 120v.*
 - 30a max per output connector
-- 8awg max size per output connector
+- 10awg max size per output connector
 - Wire furrels are recommend
 - Torque output connector to 5 in-lbs.
 
 ### Technical bits and bobs around the notes
 * The board ihas a power limit of **900w continous draw (75a)** it *should* be ok with higher draws for VERY Short peroids (IE accidentally setting lights to all white). This is because the 64 pin PSU Connector from TE is rated at 3 amps a pin, and there are 26 pins per +12v and Gnd, resulting in 78a, The traces are designed around a 25c temp rise, with the PSU fan sucking air over it all the time, this should be fine. I'm sourcing real TE high-power connectors, HP may have some priporitory conenctors that can handle more power, but a 1200w power supply requires 240v to output it's full power - and most people don't do that.
 
-Each of the output connectors are rated at 32a, but 8awg is the max wire size, so its really 30a. You should use wire Furrels and torque the connectors to 5 in-lb at high currents. Over torqueing can break them.
+Each of the output connectors are rated at 32a, but 10awg is the max wire size, so its really 30a. You should use wire Furrels and torque the connectors to 5 in-lb at high currents. Over torqueing can break them.
 
 
 
