@@ -123,6 +123,7 @@ text_sensor:
         - "511777-001 -> HP DPS-750AB-3 750w/62.2a"
         - "643932-001 -> HP HSTNS-PL29 750w/62.2a"
         - "660185-001 -> HP DPS-1200SB 1200w/100a(240v) 900w/75a(120v)"
+        - "498152-001 -> HP HSTNS-PL11 1200w/100a(240v) 900w/75a(120v)" 
 
 
 binary_sensor:
