@@ -138,15 +138,45 @@ binary_sensor:
     name: "${devicename} PSInturrupt"
     
   #re-use FLASH/PROG button to act as local PSU control once booted
+  # Single press= PSU on/off
+  # Short hold = Case Fan On/Off
+  # Long Hold = PSU Fan Max speed/Auto
   - platform: gpio
     pin: 
       number: 0
       inverted: true
     name: "${devicename} Local PSU Control"
     icon: mdi:pushbutton
-    on_press:
+    on_click:
+    - min_length: 50ms
+      max_length: 350ms
       then:
-      - switch.toggle: PSU_power
+        - switch.toggle: PSU_power
+    - min_length: 1000ms
+      max_length: 5000ms
+      then:
+        lambda: |-
+          if (id(csps_rpm).state == 0 ) {
+            auto call = id(csps_rpm).make_call();
+            call.set_value(20000);
+            call.perform();
+          } else {
+            auto call = id(csps_rpm).make_call();
+            call.set_value(0);
+            call.perform();
+          }
+    - min_length: 350ms
+      max_length: 1000ms
+      then:
+        lambda: |-
+          if (id(fan1).state) {
+            auto call = id(fan1).turn_off();
+            call.perform();
+          } else {
+            auto call = id(fan1).turn_on();
+            call.set_speed(10);
+            call.perform();
+          }
 
 sensor: 
   - platform: wifi_signal
@@ -175,21 +205,25 @@ sensor:
     id: adc_sensor
 
   
-  # Box Fan RPM
-  - platform: pulse_counter
-    pin: 14
-    name: "${devicename} Box Fan RPM"
-    id: fan_pulse
-    unit_of_measurement: 'RPM'
-    filters:
-      - multiply: 3
-      - sliding_window_moving_average:
-          window_size: 20
-          send_every: 5
-    count_mode:
-      rising_edge: INCREMENT
-      falling_edge: DISABLE
-    update_interval: $update_time
+# Removed because the ESP8266 can't count pulses properly due to fans puling the sense line to 10v when powered off.
+# We really don't need this as it's just an indicator that the fan failed. We can get this also from box temp if temp goes extremly high.
+# also wiring is not included in PCB. Mainly an example of how it would be done
+
+#  # Box Fan RPM
+#  - platform: pulse_counter
+#    pin: 14
+#    name: "${devicename} Box Fan RPM"
+#    id: fan_pulse
+#    unit_of_measurement: 'RPM'
+#    filters:
+#      - multiply: 3
+#      - sliding_window_moving_average:
+#          window_size: 20
+#          send_every: 5
+#    count_mode:
+#      rising_edge: INCREMENT
+#      falling_edge: DISABLE
+#    update_interval: $update_time
 
 
   #BME280
