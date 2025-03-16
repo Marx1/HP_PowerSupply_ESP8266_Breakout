@@ -1,6 +1,9 @@
 # HP Power supply (up to 1200w*) breakout board w/ ESP8266 
 (I use ESPhome and that is the example included) to control the Power supply remotely. 
 
+**WARNING: This code is designed to use custom components with ESPhome, a feature that was removed. I do not have a work around for this at this time.**
+
+
 These are commonly used in the holiday lighting community (as I am on my show), so the features are geared towards this.
 
 ## Features include
